@@ -6,59 +6,58 @@ import matplotlib.pyplot as plt
 
 #Une variable quantitative continue => histogramme 
 #       Utilisation de boxplot
-
+#%%
 #Une variable discrete => diagramme baton
 #       Utilisation de crosstab 
-notes = pd.read_excel("Notes.xlsx",index_col=0)
-notes = notes.dropna()
-#notes
-#notes.describe()
-#notes.info()
-n = notes.shape[0]
-p = notes.shape[1]
+crimes = pd.read_excel("Criminalite.xlsx",index_col=0)
+crimes = crimes.dropna()
+#crimes
+#crimes.describe()
+#crimes.info()
+n = crimes.shape[0]
+p = crimes.shape[1]
 print("Nombres d'individus : {}".format(n))
-for d in notes:
-    print("{} : {}".format(d, notes[d].dtype))
+for d in crimes:
+    print("{} : {}".format(d, crimes[d].dtype))
     
 #===
-print("=============\n\n")
+print("Analyse Simples (sur un élément)\n=============\n\n")
 print("Moyenne : \n")
-print(notes.mean())
+print(crimes.mean())
 print("Variance : \n")
-print(notes.var())
+print(crimes.var())
 
 plt.figure()
-notes.boxplot()
+crimes.boxplot()
 plt.show()
 
-print("=============\n\n")
-plt.scatter(notes["MATH"], notes["PHYS"])
-for i in range(n):
-    plt.annotate(notes.index[i], (notes.iloc[i, 0], notes.iloc[i, 1]))
-plt.xlabel('MATH')
-plt.ylabel('PHYS')
 
+#%%
 
-print("=============\n\n")
-pd.plotting.scatter_matrix(notes)
-C = pd.DataFrame.corr(notes, method='pearson')
+print("Analyse Bivarié (sur deux éléments)\n=============\n\n")
+pd.plotting.scatter_matrix(crimes)
+
+#%%
+print("Heat map \n=============\n\n")
+C = pd.DataFrame.corr(crimes, method='pearson')
+print(C)
 plt.figure()
 sns.heatmap(C, vmin=-1, vmax=1, cmap='coolwarm', annot=True)
-
+#%%
 
 print("=============\n\n")
 #Matrice de covariance
-Cov = pd.DataFrame.cov(notes)
+Cov = pd.DataFrame.cov(crimes)
 print(Cov)
 
 print("=============\n\n")
 
 from sklearn.decomposition import PCA
 acp = PCA()
-Xacp = acp.fit_transform(notes) # ou Xacp=acp.fit(X).transform(X)
+Xacp = acp.fit_transform(crimes) # ou Xacp=acp.fit(X).transform(X)
 print(Xacp)
 print("Variance de chaque axe : {}".format(acp.explained_variance_))
-print("Ration de variance de chaque axe : {}".format(acp.explained_variance_ratio_))
+print("Ratio de variance de chaque axe : {}".format(acp.explained_variance_ratio_))
 #Ici on voit que les deux premières valeurs représentent plus de 99% de la variance totales
 comp = acp.components_
 print("Components : \n{}\n".format(acp.components_))
@@ -72,10 +71,12 @@ plt.plot(np.arange(1, p+1), np.cumsum(acp.explained_variance_ratio_))
 plt.ylabel("Variance expliquée en ratio et cumul")
 plt.xlabel("Nombre de facteurs")
 plt.show()
-
+#%%
+#Ici on sait qu'on a besoin de 2 facteurs pour expliquer 99% de la variance
+#On fait juste un scatter
 #La variance totale du nuage de points-individus peut-être calculé comme
 #La somme des variances de chaque facteurs
-print(np.sum(notes.var()))
+print(np.sum(crimes.var()))
 #La somme des vp
 print(np.sum(acp.explained_variance_))
 
@@ -84,7 +85,7 @@ print("=============\n\n")
 
 plt.figure()
 for i in range(len(Xacp)):
-    plt.annotate(notes.index[i],(Xacp[i,0],Xacp[i,1]))
+    plt.annotate(crimes.index[i],(Xacp[i,0],Xacp[i,1]))
 plt.scatter(Xacp[:, 0], Xacp[:, 1], c='blue', marker='o')
 plt.title('Projection des données dans le nouveau repère')
 plt.xlabel('Composante principale 1')
@@ -100,11 +101,14 @@ ax.set_xlim(-1, 1)
 ax.set_ylim(-1, 1)
 plt.grid()
 ax.set_aspect('equal', adjustable='box')
+
+
 for i in range(p):
-    CP1 = np.corrcoef(notes.iloc[:,i],Xacp[:,0])[0,1]
-    CP2 = np.corrcoef(notes.iloc[:,i],Xacp[:,1])[0,1]
+    CP1 = np.corrcoef(crimes.iloc[:,i],Xacp[:,0])[0,1]
+    print(np.corrcoef(crimes.iloc[:,i],Xacp[:,0]))
+    CP2 = np.corrcoef(crimes.iloc[:,i],Xacp[:,1])[0,1]
     plt.scatter(CP1,CP2)
-    plt.annotate(notes.columns[i],(CP1,CP2))
+    plt.annotate(crimes.columns[i],(CP1,CP2))
 plt.title('Cercle Unitaire')
 plt.show()
 # %%
