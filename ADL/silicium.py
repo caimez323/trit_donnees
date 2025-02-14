@@ -36,11 +36,13 @@ pd.plotting.scatter_matrix(silicium.iloc[:, 1:-1], c=silicium["Code"])
 #%%
 #Traçons les individus dans le nouveau repère
 
+plt.figure()
 adl = LinearDiscriminantAnalysis()
 siliciumald = adl.fit_transform(silicium.iloc[:,1:-1],silicium['Code'])
-plt.figure()
-#for i in range(len(silicium)):
 plt.scatter(siliciumald[:,0],siliciumald[:,1],c=silicium["Code"])    
+
+inconnu = adl.transform(silicium_remain.iloc[:,1:])
+plt.scatter(inconnu[:,0], inconnu[:,0], color = "black")
 #plt.annotate(silicium["Group"][i],(irisald[i,0],irisald[i,1]))
 plt.title("Représentation des données en fonction de CP1 et CP2")
 plt.ylabel("CPD2")
