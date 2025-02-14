@@ -11,7 +11,9 @@ import matplotlib.pyplot as plt
 #       Utilisation de crosstab 
 crimes = pd.read_excel("Criminalite.xlsx",index_col=0)
 crimes = crimes.dropna()
-#crimes
+#CENTRE REDUIT
+crimes = (crimes-crimes.mean())/crimes.std()
+
 #crimes.describe()
 #crimes.info()
 n = crimes.shape[0]
