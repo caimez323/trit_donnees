@@ -9,6 +9,7 @@ from sklearn.preprocessing import LabelEncoder
 silicium_raw = pd.read_excel("defauts_silicium_v2.xlsx",index_col=0)
 silicium_remain = silicium_raw.dropna()[149:]
 silicium = silicium_raw.dropna()[:149]
+print(silicium["Type"].value_counts())
 print(silicium)
 couleur = {"Inclusion":"blue","Rayure":"green","Contamination":"purple"}
 
@@ -40,9 +41,10 @@ plt.figure()
 adl = LinearDiscriminantAnalysis()
 siliciumald = adl.fit_transform(silicium.iloc[:,1:-1],silicium['Code'])
 plt.scatter(siliciumald[:,0],siliciumald[:,1],c=silicium["Code"])    
+print(adl.explained_variance_ratio_)
 
 inconnu = adl.transform(silicium_remain.iloc[:,1:])
-plt.scatter(inconnu[:,0], inconnu[:,0], color = "black")
+plt.scatter(inconnu[:,0], inconnu[:,0], color = "red")
 #plt.annotate(silicium["Group"][i],(irisald[i,0],irisald[i,1]))
 plt.title("Représentation des données en fonction de CP1 et CP2")
 plt.ylabel("CPD2")
@@ -51,8 +53,6 @@ plt.show()
 
 
 #%%
-
-
 
 print("=============\n\n")
 #print(np.sum(silicium.var())) # A régler
@@ -68,11 +68,11 @@ ax.set_aspect('equal', adjustable='box')
 
 
 for i in range(1,p):
-    CP1 = np.corrcoef(silicium.iloc[:,i],siliciumald[:,0])[0,1]
-    CP2 = np.corrcoef(silicium.iloc[:,i],siliciumald[:,1])[0,1]
+    CD1 = np.corrcoef(silicium.iloc[:,i],siliciumald[:,0])[0,1]
+    CD2 = np.corrcoef(silicium.iloc[:,i],siliciumald[:,1])[0,1]
     if silicium.columns[i] != "Code" and silicium.columns[i] != "Type":
-        plt.scatter(CP1,CP2)
-        plt.annotate(silicium.columns[i],(CP1,CP2))
+        plt.scatter(CD1,CD2)
+        plt.annotate(silicium.columns[i],(CD1,CD2))
 plt.title('Cercle Unitaire')
 plt.show()
 
