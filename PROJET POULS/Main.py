@@ -7,6 +7,9 @@ import numpy as np
 from sklearn.preprocessing import LabelEncoder
 import scipy.io 
 import seaborn as sns
+from sklearn import metrics
+import seaborn as sns
+from sklearn.metrics import roc_auc_score
 
 
 # %%
@@ -84,7 +87,9 @@ plt.tight_layout()
 plt.show()
 
 # Moyenne par classe
-moy = df1.groupby('Classement cardiologue').mean()
+# Exclude non-numeric columns before calculating the mean
+numeric_columns = df1.select_dtypes(include=[np.number]).columns
+moy = df1.groupby('Classement cardiologue')[numeric_columns].mean()
 print(moy)
 
 #%%
@@ -156,4 +161,19 @@ plt.scatter(composantsald[:,0],Ra,c=df1["Code"])
 #plt.scatter(composantsald[:,0],df1["Code"],c=df1["Code"]) 
 plt.title("Représentation des données en fonction Code et Code")
 plt.show()
+# %%
+# On fait l'analyse ROC à partir de l'ADL
+
+
+plt.figure()
+for i in range(2,df1.shape[1]-1):
+    #Score c'est la variable pour notre truc
+    fpr, tpr, thresholds = metrics.roc_curve(df1["Code"], df1.iloc[:,i],pos_label=1)
+    auc = roc_auc_score(df1["Code"],df1.iloc[:,i])
+    if auc < 0.5:
+        fpr, tpr, thresholds = metrics.roc_curve(df1["Code"], -df1.iloc[:,i],pos_label=1)
+    plt.plot(fpr,tpr,label=df1.columns[i])
+plt.legend(fontsize='small',loc="lower right")
+plt.show()
+
 # %%

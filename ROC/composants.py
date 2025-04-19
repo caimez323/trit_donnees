@@ -66,3 +66,5 @@ for i in range(0,p-1):
     plt.plot(fpr,tpr,label=composants.columns[i])
 plt.legend(fontsize='small',loc="lower right")
 plt.show()
+
+# %%
