@@ -10,8 +10,30 @@ import seaborn as sns
 from sklearn import metrics
 import seaborn as sns
 from sklearn.metrics import roc_auc_score
+import numpy as np
+import scipy.stats as stats
+
+def intervalle_confiance_95(data):
+    data = np.array(data)
+    n = len(data)
+    moyenne = np.mean(data)
+    ecart_type = np.std(data, ddof=1)  # écart-type corrigé
+    erreur_type = ecart_type / np.sqrt(n)
+    
+    # t de Student à 95% de confiance, bilatéral
+    t_score = stats.t.ppf(1 - 0.025, df=n - 1)
+    
+    marge = t_score * erreur_type
+    return moyenne - marge, moyenne + marge
 
 
+#Pour l'oral, il faudra expliquer les outils que l'on utiliser, pourquoi on les utiliser, c'est quoi à la différence entre eux, et lequel on préfère
+#Aussi mettre la méthode, image, conclusion,...
+#erreur couleur, 
+#comparer a la solution existante
+#pourquoi c'est la meillure
+#qu'est ce qui est plus grave
+#qu'elle conséquence pour chaque solution
 # %%
 data = scipy.io.loadmat('./data.mat') 
 df1 = pd.DataFrame(data['data1'])
@@ -66,6 +88,8 @@ df3 = df3.drop(columns=["Début du pulse", "Fin du pulse"])
 # Convertir la colonne "Classement cardiologue" en label encodé
 le = LabelEncoder()
 df1['Code'] = le.fit_transform(df1['Classement cardiologue'])
+df2['Code'] = le.fit_transform(df2['Classement cardiologue'])
+df3['Code'] = le.fit_transform(df3['Classement cardiologue'])
 
 # Nombre de colonnes/features
 n = df1.shape[0]
@@ -177,3 +201,123 @@ plt.legend(fontsize='small',loc="lower right")
 plt.show()
 
 # %%
+
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklearn.naive_bayes import GaussianNB
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.neighbors import KNeighborsClassifier
+
+#arg
+# @dataTrain sur lequel le jeu est entrainé
+# @dataTest sur lequel le jeu est testé
+# @type de classification qu'on veut faire
+def train_predict(dataTrain,dataTest,func=False):
+    X_train, X_test, y_train, y_test = train_test_split(dataTrain.iloc[:,2:-1] , dataTrain["Code"], test_size=1/3 , stratify = dataTrain["Code"])
+    y_pred = None
+    precision = None
+    if not func :
+        TotalIter = 100
+        TrainingList = []
+        for z in range(TotalIter):
+            precision = []
+            X_t_train,X_val,y_t_train,y_val = train_test_split(X_train , y_train, test_size=1/3 , stratify = y_train)
+            y_pred = []
+            maxKneighb = 50
+            for i in range(1,maxKneighb):
+                adl = KNeighborsClassifier(n_neighbors=i)
+                dataTrained=adl.fit(X_t_train,y_t_train)
+                y_pred.append(adl.predict(X_val))
+                precision.append(adl.score(X_val, y_val))
+                
+            maxIt = precision.index(max(precision))+1
+            plt.plot(precision)
+            TrainingList.append(precision)
+        #TrainingList fini
+        
+        precisionMoyenne = []
+        
+        for i in range(len(TotalIter)):
+            for j in range(len(maxKneighb)):
+                precisionMoyenne.append(np.mean(TrainingList[i,j]))
+        
+        
+        
+        return TrainingList,precisionMoyenne
+        conf = confusion_matrix(y_val, y_pred[maxIt],normalize="true")
+        disp = ConfusionMatrixDisplay(confusion_matrix=conf)
+        disp.plot()
+        plt.show()
+    
+    
+    adl = func()
+    dataTrained = adl.fit(X_train,y_train)
+    
+    #On est critique sur le nombre d'individus
+    #print("Répartition d'apprentissage : {}.\n".format(y_train.value_counts()))
+    #print("Répartition des tests : {}.\n".format(y_test.value_counts()))
+    
+    #Prediction sur l'échantillon de test
+    y_pred = adl.predict(X_test)
+    
+    #La réponse du train est dans y_test
+    #Le résultat du pred est dans y_pred
+    precision = adl.score(X_test, y_test)
+    
+    #Bien mais pas très détaillé
+    print("Précision de {}% - (entrainement)".format(100*sum(y_pred == y_test)/len(y_test)))
+    
+    conf = confusion_matrix(y_test, y_pred,normalize="true")
+    disp = ConfusionMatrixDisplay(confusion_matrix=conf)
+    disp.plot()
+    plt.show()
+    
+    
+    #X c'est les données, et y la valeur que l'on veut prédire
+    X_dataTest = dataTest.iloc[:, 2:-1]
+    y_dataTest = dataTest["Code"]
+    
+    # Prédiction sur df2
+    y_pred_dataTest = adl.predict(X_dataTest)
+    
+    # Évaluation
+    precision_dataTest = adl.score(X_dataTest, y_dataTest)
+    print("Précision sur df2 : {:.2f}%".format(100 * precision_dataTest))
+    
+    # Matrice de confusion
+    conf_dataTest = confusion_matrix(y_dataTest, y_pred_dataTest, normalize="true")
+    disp_dataTest = ConfusionMatrixDisplay(confusion_matrix=conf_dataTest)
+    disp_dataTest.plot()
+    plt.show()
+    
+    
+        
+    
+#%%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+train_predict(df1,df2)
+
+
