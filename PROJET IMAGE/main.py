@@ -11,6 +11,12 @@ import seaborn as sns
 from sklearn.metrics import roc_auc_score
 import numpy as np
 import scipy.stats as stats
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklearn.naive_bayes import GaussianNB
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.neighbors import KNeighborsClassifier
 
 img_data = pd.read_excel("database.xlsx",index_col=0)
 img_data = img_data.dropna()
@@ -104,6 +110,57 @@ plt.title("Représentation des données en fonction Code et Code")
 plt.show()
 
 #%%
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report
+import numpy as np
 
+# 1. Données
+X = img_data_reduit
+y = img_data.iloc[:, -1]
 
+# 2. Split train / test
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1/3, random_state=42)
 
+# 3. Standardisation
+scaler = StandardScaler()
+scaler.fit(X_train)
+X_train_scaled = scaler.transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# 4. Grille d’hyperparamètres
+param_grid = {
+    'hidden_layer_sizes': [(10,), (50,), (100,), (150,)],
+    'activation': ['identity', 'logistic', 'tanh', 'relu']
+}
+
+# 5. GridSearchCV
+mlp = MLPClassifier(max_iter=500, random_state=42)
+grid_search = GridSearchCV(mlp, param_grid, cv=5, scoring='accuracy', n_jobs=-1)
+grid_search.fit(X_train_scaled, y_train)
+
+# 6. Résultats
+print("Meilleurs paramètres :", grid_search.best_params_)
+print("Score sur test set :", grid_search.score(X_test_scaled, y_test))
+
+# 7. Prédictions + rapport
+y_pred = grid_search.predict(X_test_scaled)
+print("\nRapport de classification :\n", classification_report(y_test, y_pred))
+
+#%%
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1/3)
+clf = MLPClassifier(max_iter=5000)
+clf.fit(X_train,y_train)
+
+y_pred = clf.predict(X_test)
+
+score = metrics.accuracy_score(y_test,y_pred)
+confusionMatrix = metrics.confusion_matrix(y_test,y_pred,normalize="true")
+
+disp_dataTest = ConfusionMatrixDisplay(confusion_matrix=confusionMatrix)
+disp_dataTest.plot()
+
+print("Score {}".format(score))
+print("Confusion matrix {}".format(confusionMatrix))
