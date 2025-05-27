@@ -164,3 +164,59 @@ disp_dataTest.plot()
 
 print("Score {}".format(score))
 print("Confusion matrix {}".format(confusionMatrix))
+
+#%%
+from sklearn.svm import SVC
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1/3, random_state=42)
+
+clf = SVC(kernel='linear',C=1)#Test avec linéaire, rbf pourrait être bien aussi à tester
+#on peut augementer légèrement la puiissance du modèle en augmentant C
+clf.fit(X_train, y_train)
+y_pred = clf.predict(X_test)
+score = metrics.accuracy_score(y_test, y_pred)
+confusionMatrix = metrics.confusion_matrix(y_test, y_pred, normalize="true")
+disp_dataTest = ConfusionMatrixDisplay(confusion_matrix=confusionMatrix)
+disp_dataTest.plot()
+# Score
+print("Score {}".format(score))
+print("Confusion matrix {}".format(confusionMatrix))
+
+
+# %%
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1/3, random_state=42)
+
+clf = SVC(C=100)
+clf.fit(X_train, y_train)
+y_pred = clf.predict(X_test)
+score = metrics.accuracy_score(y_test, y_pred)
+confusionMatrix = metrics.confusion_matrix(y_test, y_pred, normalize="true")
+disp_dataTest = ConfusionMatrixDisplay(confusion_matrix=confusionMatrix)
+disp_dataTest.plot()
+# Score
+print("Score {}".format(score))
+print("Confusion matrix {}".format(confusionMatrix))
+# %%
+
+from sklearn.neural_network import MLPClassifier
+best_score = 0
+best_model = None
+for i in range(50,1000):
+    print("Iteration {}".format(i)) 
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1/3)
+    clf = MLPClassifier(hidden_layer_sizes=(i), max_iter=5000,alpha=0.01)
+    clf.fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
+    score = metrics.accuracy_score(y_test, y_pred)
+    #confusionMatrix = metrics.confusion_matrix(y_test, y_pred, normalize="true")
+    #disp_dataTest = ConfusionMatrixDisplay(confusion_matrix=confusionMatrix)
+    #disp_dataTest.plot()
+    # Score
+    #print("Score {}".format(score))
+    #print("Confusion matrix {}".format(confusionMatrix))
+    if score > best_score:
+        best_score = score
+        best_model = clf
+print("Best score: {}".format(best_score))
+
+# %%
