@@ -208,6 +208,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from sklearn.neighbors import KNeighborsClassifier
+from scipy.stats import sem
 
 #arg
 # @dataTrain sur lequel le jeu est entrainé
@@ -218,10 +219,11 @@ def train_predict(dataTrain,dataTest,func=False):
     y_pred = None
     precision = None
     if not func : #Si on est dans le cas des classement k neighbours
-        TotalIter = 50
+        TotalIter = 100
         TrainingList = []
-        adlList = []
+        adlList = {}
         maxItList = []
+        forErrorMargin = {}
         for z in range(TotalIter): # On vient faire 100 courbes des n voisins
             precision = []
             X_t_train,X_val,y_t_train,y_val = train_test_split(X_train , y_train, test_size=1/3 , stratify = y_train)
@@ -232,27 +234,49 @@ def train_predict(dataTrain,dataTest,func=False):
                 dataTrained=adl.fit(X_t_train,y_t_train)
                 y_pred.append(adl.predict(X_val))
                 precision.append(adl.score(X_val, y_val))
-                adlList.append(adl)#Ici on stock les adl, on va aller chercher la meilleure à la fin, oui certes on va prendre le dernier de la liste et pas forcément le meilleure de chaque, mais on a déterminer que c'était le meilleur avec l'ananlyse suivantes
+                atI = adlList.get(i)
+                if atI is None:
+                    adlList[i] = [adl.score(X_val, y_val),adl]
+                else:
+                    if adl.score(X_val, y_val) > atI[0]:
+                        adlList[i][0] = adl.score(X_val, y_val)
+                        adlList[i][1] = adl
+
                    
             maxIt = precision.index(max(precision))+1
             maxItList.append(maxIt)
-            plt.plot(precision)
-            TrainingList.append(precision)
             
-        #TrainingList fini
-        
+            TrainingList.append(precision)
+            for index,precForThisNeighb in enumerate(precision):
+                forErrorMargin[index] = forErrorMargin.get(index, []) + [precForThisNeighb]
+            plt.plot(precision)
+
+        #Précision moyenne c'est la moyenne de chaque case de traingin list donc la moyenne de chaque précision pour chaque nombre de voisins
         precisionMoyenne = []
-        #
-        for j in range(1,maxKneighb+1):
-            precisionMoyenne.append(np.mean(TrainingList[:][j]))
-        
+        for j in range(maxKneighb):
+            valeurs_j = [iteration[j] for iteration in TrainingList]
+            precisionMoyenne.append(np.mean(valeurs_j))
         plt.show()
         plt.figure()
+
+        x = []
+        y_mean = []
+        y_err = []
+        
+        for xi, values in forErrorMargin.items():
+            x.append(xi)
+            y_mean.append(np.mean(values))
+            error = sem(values)  # erreur standard de la moyenne
+            y_err.append(1.96 * error)  # intervalle de confiance à 95%
+            print(intervalle_confiance_95(values))
+        plt.errorbar(x, y_mean, yerr=y_err, fmt='o', label='Moyenne avec IC 95%')
+        plt.grid(True)
         plt.plot(precisionMoyenne)
         plt.show()
-        print("Le meilleur est le {}".format(int(np.median(maxItList))))
+        bestvoisin = int(np.median(maxItList))+1
+        print("Le meilleur est le {}".format(bestvoisin))
 
-        bestAdl = adlList[int(np.median(maxItList[:]))]
+        bestAdl = adlList[int(np.median(maxItList))][1]
         y_pred_final = bestAdl.predict(X_test)
         conf = confusion_matrix(y_test, y_pred_final,normalize="true")
         disp = ConfusionMatrixDisplay(confusion_matrix=conf)
