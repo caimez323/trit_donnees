@@ -83,7 +83,6 @@ df2 = df2.drop(columns=["Début du pulse", "Fin du pulse"])
 df3 = df3.drop(columns=["Début du pulse", "Fin du pulse"])
 
 # %%
-# Suppose que ton DataFrame est déjà chargé et nommé `df`
 
 # Convertir la colonne "Classement cardiologue" en label encodé
 le = LabelEncoder()
@@ -115,6 +114,17 @@ plt.show()
 numeric_columns = df1.select_dtypes(include=[np.number]).columns
 moy = df1.groupby('Classement cardiologue')[numeric_columns].mean()
 print(moy)
+
+counts = df1['Code'].value_counts().sort_index()
+
+labels = counts.index.map({0: "artéfact", 1: "correcte"})
+
+# Tracé
+plt.figure(figsize=(6, 6))
+plt.pie(counts.values, labels=labels, autopct='%1.1f%%', colors=['#d95f02', '#1b9e77'], startangle=90)
+plt.title("Répartition des individus par classe")
+plt.tight_layout()
+plt.show()
 
 #%%
 C = pd.DataFrame.corr(df1.iloc[:,2:-1], method='pearson')
@@ -176,17 +186,27 @@ plt.show()
 # %%
 #Traçons les individus dans le nouveau repère
 #On fait une ADL
+# ADL
 plt.figure()
 adl = LinearDiscriminantAnalysis()
-composantsald = adl.fit_transform(df1.iloc[:,1:-1],df1["Code"])
-Ra = np.random.randn(n)
-print(adl.explained_variance_ratio_)
-scatter = plt.scatter(composantsald[:,0], Ra, c=df1["Code"], cmap='viridis')
-plt.title("Représentation des données en fonction Code et Code")
+composantsald = adl.fit_transform(df1.iloc[:, 1:-1], df1["Code"])
+Ra = np.random.randn(len(df1))
+
+# Affichage
+scatter = plt.scatter(composantsald[:, 0], Ra, c=df1["Code"], cmap='viridis')
+plt.title("Représentation des données en fonction de Code")
 plt.xlabel("Première composante ADL")
 plt.ylabel("Valeur aléatoire (Ra)")
-legend1 = plt.legend(*scatter.legend_elements(), title="Code")
-plt.gca().add_artist(legend1)
+
+# Légende manuelle
+import matplotlib.patches as mpatches
+legend_labels = {0: "Artéfact", 1: "Correcte"}
+colors = scatter.cmap(scatter.norm([0, 1]))  # Assure la cohérence des couleurs
+
+patches = [mpatches.Patch(color=colors[i], label=legend_labels[i]) for i in range(2)]
+plt.legend(handles=patches, title="Classe")
+
+plt.tight_layout()
 plt.show()
 # %%
 # On fait l'analyse ROC à partir de l'ADL
