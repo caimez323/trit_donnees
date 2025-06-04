@@ -114,13 +114,16 @@ plt.show()
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 plt.figure()
 adl = LinearDiscriminantAnalysis()
-composantsald = adl.fit_transform(img_data.iloc[:,2:-1],img_data["Code"])
+composantsald = adl.fit_transform(img_data.iloc[:,2:-1], img_data["Code"])
 Ra = np.random.randn(n)
-print(adl.explained_variance_ratio_)
-plt.scatter(composantsald[:,0],Ra,c=img_data["Code"]) 
-#plt.scatter(composantsald[:,0],img_data["Code"],c=img_data["Code"]) 
-plt.title("Représentation des données en fonction Code et Code")
-#Ajouter legende
+# Définir les couleurs et les labels
+colors = ['tab:blue', 'tab:orange']
+labels = ['Artificiel', 'Naturel']
+for code, color, label in zip([0, 1], colors, labels):
+    idx = img_data["Code"] == code
+    plt.scatter(composantsald[idx, 0], Ra[idx], c=color, label=label)
+plt.title("Représentation des données dans le plan ADL")
+plt.legend()
 plt.show()
 
 #%%
