@@ -23,6 +23,20 @@ img_data = img_data.dropna()
 
 print(img_data)
 
+def intervalle_confiance_95(data):
+    data = np.array(data)
+    n = len(data)
+    moyenne = np.mean(data)
+    ecart_type = np.std(data, ddof=1)  # écart-type corrigé
+    erreur_type = ecart_type / np.sqrt(n)
+    
+    # t de Student à 95% de confiance, bilatéral
+    t_score = stats.t.ppf(1 - 0.025, df=n - 1)
+    
+    marge = t_score * erreur_type
+    return moyenne - marge, moyenne + marge
+
+
 #%%
 n = img_data.shape[0]
 p = img_data.shape[1]
@@ -149,74 +163,70 @@ y_pred = grid_search.predict(X_test_scaled)
 print("\nRapport de classification :\n", classification_report(y_test, y_pred))
 
 #%%
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1/3)
-clf = MLPClassifier(max_iter=5000)
-clf.fit(X_train,y_train)
-
-y_pred = clf.predict(X_test)
-
-score = metrics.accuracy_score(y_test,y_pred)
-confusionMatrix = metrics.confusion_matrix(y_test,y_pred,normalize="true")
-
-disp_dataTest = ConfusionMatrixDisplay(confusion_matrix=confusionMatrix)
-disp_dataTest.plot()
-
-print("Score {}".format(score))
-print("Confusion matrix {}".format(confusionMatrix))
-
-#%%
 from sklearn.svm import SVC
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1/3, random_state=42)
-
-clf = SVC(kernel='linear',C=1)#Test avec linéaire, rbf pourrait être bien aussi à tester
-#on peut augementer légèrement la puiissance du modèle en augmentant C
-clf.fit(X_train, y_train)
-y_pred = clf.predict(X_test)
-score = metrics.accuracy_score(y_test, y_pred)
-confusionMatrix = metrics.confusion_matrix(y_test, y_pred, normalize="true")
-disp_dataTest = ConfusionMatrixDisplay(confusion_matrix=confusionMatrix)
+best_score_clf_lin = 0
+best_confusion_matrix_clf_lin = None
+scorelist_clf_lin = []
+# Test de SVC avec différentes valeurs de C
+for i in range(1, 10):
+    print("Iteration {}".format(i)) 
+    # On divise les données en train et test
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1/3, random_state=42)
+    clf = SVC(kernel='linear',C=1)#Test avec linéaire, rbf pourrait être bien aussi à tester
+    #on peut augementer légèrement la puiissance du modèle en augmentant C
+    clf.fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
+    score = metrics.accuracy_score(y_test, y_pred)
+    scorelist_clf_lin.append(score)
+    confusionMatrix = metrics.confusion_matrix(y_test, y_pred, normalize="true")
+    if score > best_score_clf_lin:
+        best_score_clf_lin = score
+        best_confusion_matrix_clf_lin = confusionMatrix
+disp_dataTest = ConfusionMatrixDisplay(confusion_matrix=best_confusion_matrix_clf_lin)
 disp_dataTest.plot()
-# Score
-print("Score {}".format(score))
-print("Confusion matrix {}".format(confusionMatrix))
+print("Score CLF Linéaire: {} +- {}".format(np.mean(scorelist_clf_lin), intervalle_confiance_95(scorelist_clf_lin)))
 
 
 # %%
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1/3, random_state=42)
-
-clf = SVC(C=100)
-clf.fit(X_train, y_train)
-y_pred = clf.predict(X_test)
-score = metrics.accuracy_score(y_test, y_pred)
-confusionMatrix = metrics.confusion_matrix(y_test, y_pred, normalize="true")
-disp_dataTest = ConfusionMatrixDisplay(confusion_matrix=confusionMatrix)
+best_score_clf = 0
+best_confusion_matrix_clf = None
+scorelist_clf = []
+# Test de SVC avec différentes valeurs de C
+for i in range(1, 10):
+    print("Iteration {}".format(i))
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1/3, random_state=42)
+    clf = SVC(C=100)
+    clf.fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
+    score = metrics.accuracy_score(y_test, y_pred)
+    scorelist_clf.append(score)
+    confusionMatrix = metrics.confusion_matrix(y_test, y_pred, normalize="true")
+    if score > best_score_clf:
+        best_score_clf = score
+        best_confusion_matrix_clf = confusionMatrix
+disp_dataTest = ConfusionMatrixDisplay(confusion_matrix=best_confusion_matrix_clf)
 disp_dataTest.plot()
-# Score
-print("Score {}".format(score))
-print("Confusion matrix {}".format(confusionMatrix))
+print("Score CLF : {} +- {}".format(np.mean(scorelist_clf), intervalle_confiance_95(scorelist_clf)))
 # %%
 
 from sklearn.neural_network import MLPClassifier
-best_score = 0
-best_model = None
-for i in range(50,1000):
+best_score_MLP = 0
+best_confusion_matrix_MLP = None
+scorelist_MLP = []
+for i in range(1,10):
     print("Iteration {}".format(i)) 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1/3)
     clf = MLPClassifier(hidden_layer_sizes=(i), max_iter=5000,alpha=0.01)
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
     score = metrics.accuracy_score(y_test, y_pred)
-    #confusionMatrix = metrics.confusion_matrix(y_test, y_pred, normalize="true")
-    #disp_dataTest = ConfusionMatrixDisplay(confusion_matrix=confusionMatrix)
-    #disp_dataTest.plot()
-    # Score
-    #print("Score {}".format(score))
-    #print("Confusion matrix {}".format(confusionMatrix))
-    if score > best_score:
-        best_score = score
-        best_model = clf
-print("Best score: {}".format(best_score))
+    scorelist_MLP.append(score)
+    confusionMatrix = metrics.confusion_matrix(y_test, y_pred, normalize="true")
+    if score > best_score_clf:
+        best_score_clf = score
+        best_confusion_matrix_MLP= confusionMatrix
+disp_dataTest = ConfusionMatrixDisplay(confusion_matrix=best_confusion_matrix_MLP)
+disp_dataTest.plot()
+print("Score MLP : {} +- {}".format(np.mean(scorelist_MLP), intervalle_confiance_95(scorelist_MLP)))
 
 # %%
