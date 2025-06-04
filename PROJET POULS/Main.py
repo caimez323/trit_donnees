@@ -35,6 +35,10 @@ def intervalle_confiance_95(data):
 #qu'est ce qui est plus grave
 #qu'elle conséquence pour chaque solution
 # %%
+ALD = {}
+QLD = {}
+GNB = {}
+kppv = {}
 data = scipy.io.loadmat('./data.mat') 
 df1 = pd.DataFrame(data['data1'])
 df1.columns = [
@@ -252,7 +256,7 @@ def train_predict(dataTrain,dataTest,func=False,display=False):
             precision = []
             X_t_train,X_val,y_t_train,y_val = train_test_split(X_train , y_train, test_size=1/3 , stratify = y_train)
             y_pred = []
-            maxKneighb = 10#On sépare le jeu de données, et on dit qu'on va aller jusqu'à 50 voisins
+            maxKneighb = 50#On sépare le jeu de données, et on dit qu'on va aller jusqu'à 50 voisins
             for i in range(1,maxKneighb+1):
                 adl = KNeighborsClassifier(n_neighbors=i)
                 dataTrained=adl.fit(X_t_train,y_t_train)
@@ -371,7 +375,7 @@ def train_predict(dataTrain,dataTest,func=False,display=False):
                 disp_dataTest.plot()
                 plt.show()
         print("Score : {} +- {}".format(np.mean(scoreList), intervalle_confiance_95(scoreList)))
-    
+    return np.mean(scoreList), intervalle_confiance_95(scoreList)
     
     
         
@@ -405,5 +409,48 @@ def train_predict(dataTrain,dataTest,func=False,display=False):
 
 
 
-#train_predict(df1, df2,GaussianNB)
+ALD["Intra"] = train_predict(df1, df2,LinearDiscriminantAnalysis)
+ALD["Inter"] = train_predict(df1, df3,LinearDiscriminantAnalysis)
+QLD["Intra"] = train_predict(df1, df2,QuadraticDiscriminantAnalysis)
+QLD["Inter"] = train_predict(df1, df3,QuadraticDiscriminantAnalysis)
+GNB["Intra"] = train_predict(df1, df2,GaussianNB)
+GNB["Inter"] = train_predict(df1, df3,GaussianNB)
+kppv["Intra"] = train_predict(df1, df2)
+kppv["Inter"] = train_predict(df1, df3)
 
+
+# Diagramme pour les valeurs "Inter"
+methods = ['ALD', 'QLD', 'GNB', 'kppv']
+means = [ALD["Inter"][0], QLD["Inter"][0], GNB["Inter"][0], kppv["Inter"][0]]
+errors = [
+    (ALD["Inter"][1][1] - ALD["Inter"][0]),
+    (QLD["Inter"][1][1] - QLD["Inter"][0]),
+    (GNB["Inter"][1][1] - GNB["Inter"][0]),
+    (kppv["Inter"][1][1] - kppv["Inter"][0])
+]
+
+plt.figure(figsize=(8, 6))
+plt.bar(methods, means, yerr=errors, capsize=5, color=['blue', 'orange', 'green', 'red'])
+plt.ylabel('Score moyen')
+plt.ylim(0.650, 0.775)  # Réduire l'échelle de l'axe y
+plt.title('Performance des méthodes (Inter)')
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.tight_layout()
+plt.show()
+# Diagramme pour les valeurs "Intra"
+means = [ALD["Intra"][0], QLD["Intra"][0], GNB["Intra"][0], kppv["Intra"][0]]
+errors = [
+    (ALD["Intra"][1][1] - ALD["Intra"][0]),
+    (QLD["Intra"][1][1] - QLD["Intra"][0]),
+    (GNB["Intra"][1][1] - GNB["Intra"][0]),
+    (kppv["Intra"][1][1] - kppv["Intra"][0])
+]
+
+plt.figure(figsize=(8, 6))
+plt.bar(methods, means, yerr=errors, capsize=5, color=['blue', 'orange', 'green', 'red'])
+plt.ylabel('Score moyen')
+plt.ylim(0.7, 0.88)  # Réduire l'échelle de l'axe y
+plt.title('Performance des méthodes (Intra)')
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.tight_layout()
+plt.show()
