@@ -171,7 +171,7 @@ scorelist_clf_lin = []
 for i in range(1, 10):
     print("Iteration {}".format(i)) 
     # On divise les données en train et test
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1/3, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1/3)
     clf = SVC(kernel='linear',C=1)#Test avec linéaire, rbf pourrait être bien aussi à tester
     #on peut augementer légèrement la puiissance du modèle en augmentant C
     clf.fit(X_train, y_train)
@@ -194,7 +194,7 @@ scorelist_clf = []
 # Test de SVC avec différentes valeurs de C
 for i in range(1, 10):
     print("Iteration {}".format(i))
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1/3, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1/3)
     clf = SVC(C=100)
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
@@ -229,4 +229,27 @@ disp_dataTest = ConfusionMatrixDisplay(confusion_matrix=best_confusion_matrix_ML
 disp_dataTest.plot()
 print("Score MLP : {} +- {}".format(np.mean(scorelist_MLP), intervalle_confiance_95(scorelist_MLP)))
 
+# %%
+# Affichage des scores moyens et intervalles de confiance à 95% pour chaque classifieur
+
+# Moyennes et intervalles
+scores = [
+    ("SVC Linéaire", np.mean(scorelist_clf_lin), intervalle_confiance_95(scorelist_clf_lin)),
+    ("SVC (C=100)", np.mean(scorelist_clf), intervalle_confiance_95(scorelist_clf)),
+    ("MLP", np.mean(scorelist_MLP), intervalle_confiance_95(scorelist_MLP))
+]
+
+labels = [s[0] for s in scores]
+moyennes = [s[1] for s in scores]
+erreurs = [max(abs(s[1] - s[2][0]), abs(s[2][1] - s[1])) for s in scores]  # demi-largeur de l'IC
+
+plt.figure(figsize=(8, 6))
+colors = ['skyblue', 'salmon', 'limegreen']
+for i, (label, moyenne, erreur) in enumerate(zip(labels, moyennes, erreurs)):
+    plt.errorbar(label, moyenne, yerr=erreur, capsize=10, color=colors[i], fmt='o', linestyle='None', label=label)
+plt.ylabel("Score moyen (accuracy)")
+plt.ylim(0.8, 1.0)
+plt.title("Scores moyens des classifieurs avec intervalle de confiance à 95%")
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.show()
 # %%
