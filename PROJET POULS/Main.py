@@ -117,7 +117,7 @@ print(moy)
 
 counts = df1['Code'].value_counts().sort_index()
 
-labels = counts.index.map({0: "artéfact", 1: "correcte"})
+labels = counts.index.map({0: "Correcte", 1: "Artéfact"})
 
 # Tracé
 plt.figure(figsize=(6, 6))
@@ -238,11 +238,11 @@ import time
 # @dataTrain sur lequel le jeu est entrainé
 # @dataTest sur lequel le jeu est testé
 # @type de classification qu'on veut faire
-def train_predict(dataTrain,dataTest,func=False):
-    X_train, X_test, y_train, y_test = train_test_split(dataTrain.iloc[:,2:-1] , dataTrain["Code"], test_size=1/3 , stratify = dataTrain["Code"], random_state=42)
+def train_predict(dataTrain,dataTest,func=False,display=False):
     y_pred = None
     precision = None
     if not func : #Si on est dans le cas des classement k neighbours
+        X_train, X_test, y_train, y_test = train_test_split(dataTrain.iloc[:,2:-1] , dataTrain["Code"], test_size=1/3 , stratify = dataTrain["Code"])
         TotalIter = 100
         TrainingList = []
         adlList = {}
@@ -250,7 +250,7 @@ def train_predict(dataTrain,dataTest,func=False):
         forErrorMargin = {}
         for z in range(TotalIter): # On vient faire 100 courbes des n voisins
             precision = []
-            X_t_train,X_val,y_t_train,y_val = train_test_split(X_train , y_train, test_size=1/3 , stratify = y_train, random_state=42)
+            X_t_train,X_val,y_t_train,y_val = train_test_split(X_train , y_train, test_size=1/3 , stratify = y_train)
             y_pred = []
             maxKneighb = 10#On sépare le jeu de données, et on dit qu'on va aller jusqu'à 50 voisins
             for i in range(1,maxKneighb+1):
@@ -297,61 +297,81 @@ def train_predict(dataTrain,dataTest,func=False):
         plt.grid(True)
         plt.plot(precisionMoyenne)
         plt.show()
-        bestvoisin = int(np.median(maxItList))+1
+        bestvoisin = max(set(maxItList), key=maxItList.count)
         print("Le meilleur est le {}".format(bestvoisin))
 
         bestAdl = adlList[int(np.median(maxItList))][1]
-        y_pred_final = bestAdl.predict(X_test)
-        print("Précision sur la prédiction sur le modèle de test")
-        conf = confusion_matrix(y_test, y_pred_final,normalize="true")
-        disp = ConfusionMatrixDisplay(confusion_matrix=conf)
-        disp.plot()
-        plt.show()
-        adl = bestAdl
+        scoreList = []
+        X_dataTest = dataTest.iloc[:, 2:-1]
+        y_dataTest = dataTest["Code"]
+        for i in range(0,100):
+            X_train, X_test, y_train, y_test = train_test_split(dataTrain.iloc[:,2:-1] , dataTrain["Code"], test_size=1/3 , stratify = dataTrain["Code"])
+            kbest = KNeighborsClassifier(n_neighbors=bestvoisin)
+            kbest.fit(X_train,y_train)
+            precision_dataTest = kbest.score(X_dataTest, y_dataTest)
+            scoreList.append(precision_dataTest)
+            y_pred_final = kbest.predict(X_test)
+            print(kbest.score(X_dataTest, y_dataTest))
+            if display:
+                print("Précision sur la prédiction sur le modèle de test")
+                conf = confusion_matrix(y_dataTest, y_pred_final,normalize="true")
+                disp = ConfusionMatrixDisplay(confusion_matrix=conf)
+                disp.plot()
+                plt.show()  
+        print("Score : {} +- {}".format(np.mean(scoreList), intervalle_confiance_95(scoreList)))
+    
     else :
-        adl = func()
-        dataTrained = adl.fit(X_train,y_train)
-        #Prediction sur l'échantillon de test
-        y_pred = adl.predict(X_test)
-        #La réponse du train est dans y_test
-        #Le résultat du pred est dans y_pred
-        precision = adl.score(X_test, y_test)
+        scoreList = []
+
+        for i in range(0,100):
+            X_train, X_test, y_train, y_test = train_test_split(dataTrain.iloc[:,2:-1] , dataTrain["Code"], test_size=1/3 , stratify = dataTrain["Code"])
+            adl = func()
+            dataTrained = adl.fit(X_train,y_train)
+            #Prediction sur l'échantillon de test
+            y_pred = adl.predict(X_test)
+            #La réponse du train est dans y_test
+            #Le résultat du pred est dans y_pred
+            precision = adl.score(X_test, y_test)
+
+            #Bien mais pas très détaillé
+            if display:
+                print("Précision de {}% - (entrainement)".format(100*sum(y_pred == y_test)/len(y_test)))
+                conf = confusion_matrix(y_test, y_pred,normalize="true")
+                disp = ConfusionMatrixDisplay(confusion_matrix=conf)
+                disp.plot()
+                plt.show()
+                print("Répartition d'apprentissage : {}.\n".format(y_train.value_counts()))
+                print("Répartition des tests : {}.\n".format(y_test.value_counts()))
         
-        #Bien mais pas très détaillé
-        print("Précision de {}% - (entrainement)".format(100*sum(y_pred == y_test)/len(y_test)))
-        
-        conf = confusion_matrix(y_test, y_pred,normalize="true")
-        disp = ConfusionMatrixDisplay(confusion_matrix=conf)
-        disp.plot()
-        plt.show()
+            #On est critique sur le nombre d'individus
+            
+            
+            
+            
+            
+            
+            #X c'est les données, et y la valeur que l'on veut prédire
+            X_dataTest = dataTest.iloc[:, 2:-1]
+            y_dataTest = dataTest["Code"]
+            
+            # Prédiction sur dataTest
+            start_time = time.time()
+            y_pred_dataTest = adl.predict(X_dataTest)
+            end_time = time.time()
+            #print(f"Prédiction sur dataTest a mis {end_time - start_time:.2f} secondes à s'exécuter.")
+            # Évaluation
+            precision_dataTest = adl.score(X_dataTest, y_dataTest)
+            #print("Précision sur dataTest : {:.2f}%".format(100 * precision_dataTest))
+            scoreList.append(precision_dataTest)
+            
+            # Matrice de confusion
+            if display:
+                conf_dataTest = confusion_matrix(y_dataTest, y_pred_dataTest, normalize="true")
+                disp_dataTest = ConfusionMatrixDisplay(confusion_matrix=conf_dataTest)
+                disp_dataTest.plot()
+                plt.show()
+        print("Score : {} +- {}".format(np.mean(scoreList), intervalle_confiance_95(scoreList)))
     
-    #On est critique sur le nombre d'individus
-    #print("Répartition d'apprentissage : {}.\n".format(y_train.value_counts()))
-    #print("Répartition des tests : {}.\n".format(y_test.value_counts()))
-    
-    
-    
-    
-    
-    
-    #X c'est les données, et y la valeur que l'on veut prédire
-    X_dataTest = dataTest.iloc[:, 2:-1]
-    y_dataTest = dataTest["Code"]
-    
-    # Prédiction sur dataTest
-    start_time = time.time()
-    y_pred_dataTest = adl.predict(X_dataTest)
-    end_time = time.time()
-    print(f"Prédiction sur dataTest a mis {end_time - start_time:.2f} secondes à s'exécuter.")
-    # Évaluation
-    precision_dataTest = adl.score(X_dataTest, y_dataTest)
-    print("Précision sur dataTest : {:.2f}%".format(100 * precision_dataTest))
-    
-    # Matrice de confusion
-    conf_dataTest = confusion_matrix(y_dataTest, y_pred_dataTest, normalize="true")
-    disp_dataTest = ConfusionMatrixDisplay(confusion_matrix=conf_dataTest)
-    disp_dataTest.plot()
-    plt.show()
     
     
         
@@ -385,5 +405,5 @@ def train_predict(dataTrain,dataTest,func=False):
 
 
 
-train_predict(df1, df2)
+#train_predict(df1, df2,GaussianNB)
 
